@@ -6,3 +6,4 @@ ucfTrainTestlist/
 __pycache__/
 results/
 models/
+test_results/

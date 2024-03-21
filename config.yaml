@@ -1,5 +1,5 @@
 paths:
-  root: "UCF-101-1"
+  root: "UCF-101"
   annotation_path: "ucfTrainTestlist"
   frames_per_clip: 5
   step_between_clips: 5

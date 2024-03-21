@@ -42,6 +42,7 @@ def train(path_settings,train_settings):
     # Define a transform to preprocess the data
     transform = transforms.Compose([
              # scale in [0, 1]
+             #transforms.Resize((240, 300)),
              transforms.Lambda(lambda x: x / 255.),
              # reshape into (T, C, H, W) # T number of frames in the video clip , C is Channel, H is Height, W is Width
 

@@ -1,0 +1,7 @@
+UCF-101/
+UCF-101-1/
+my_env/
+wandb/
+ucfTrainTestlist/
+__pycache__/
+results/

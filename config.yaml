@@ -1,0 +1,25 @@
+paths:
+  root: "UCF-101-1"
+  annotation_path: "ucfTrainTestlist"
+  frames_per_clip: 5
+  step_between_clips: 5
+  fold : 1
+  train_dataset:
+    train: True
+  test_dataset:
+    train: False
+
+
+
+dataloader:
+  batch_size: 32
+  num_workers: 4
+  shuffle: True
+
+
+training:
+  batch_size: 32
+  num_epochs: 5
+
+
+  

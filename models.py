@@ -1,8 +1,11 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torchvision import models
 
-from torch.utils.checkpoint import checkpoint
+
+#Include Relu from torch.nn.functional
+
 
 # Create a first simple CNN and RNN model to train on the UCF101 dataset
 # TODO:
@@ -67,9 +70,80 @@ class CNNRNN(nn.Module):
         output= self.fc2(x)
 
         return output
+    
+
+class VGG16GRU(nn.Module):
+
+    def __init__(self, num_classes,checkpoint_file=None):
+        super(VGG16GRU, self).__init__()
+        # VGG-16 Model divided into two parts: features and classifier
+
+        self.model  = models.vgg16(weights ='VGG16_Weights.DEFAULT')
+        self.checkpoint_file = checkpoint_file
+        self.features = self.model.features
+        self.encoder = torch.nn.Sequential(*list(self.model.children())[:-1]) # Removing the last layer 
+                                                                              # Also contains all layers except the last one
+        self.classifier = self.model.classifier     # Last layer of the model as classification
+        
+        #Include bottle neck layer between encoder and gru 
+        self.bottleneck = nn.Linear(512 * 7 * 7 , 2048)
+        self.relu = nn.ReLU()
+        self.gru = nn.GRU(2048, 512, num_layers=3, batch_first=True, dropout=0.5)
+
+        self.fc0 = nn.Linear(512,101)
+        
+        #Print the last layer of encoder 
+        #print(self.encoder[0])
+        #print(self.classifier)
 
 
 
+    def load_model_from_checkpoint(self):
+        weights = torch.load(self.checkpoint_file)
+        self.model.load_state_dict(weights)
+        print('Model loaded from checkpoint,hopefully :)')
+        return self.model
+
+    def forward(self, x):
+        batch_size, timesteps, C, H, W = x.size()
+        x = x.reshape(batch_size * timesteps, C, H, W)
+        x = self.encoder(x)
+        #print(f' After encoder shape is: {x.shape}')
+
+        x = x.view(x.size(0), -1) # Flatten the output look it tomorrow detailed
+        x= self.bottleneck(x)
+        #print(f' After bottleneck shape is: {x.shape}')
+        x = self.relu(x)
+        #print(f' After ReLU shape is: {x.shape}')
+
+        x = x.reshape(batch_size, timesteps, -1) # Modifing the input in order to pass it to gru 
+                                                 # GRU expects 3D tensor as  ( batch_size,sequence_length and num_feautres)
+        gru_out, _ = self.gru(x)
+
+        #Take the output from the last time step        # CHECK IT TOO!!!
+        gru_out = gru_out[:, -1, :]
+
+        x = self.fc0(gru_out)
+
+        return x
+
+        
+        
+
+
+
+
+        
+        return
+
+
+if __name__ == '__main__':
+
+    input = torch.randn(1,5,3,230,320)
+
+    vgg16_model = VGG16GRU(101)
+    vgg16_model.forward(input)
+    
 
 
 

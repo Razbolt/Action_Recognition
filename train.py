@@ -11,7 +11,7 @@ from torchvision.transforms import Lambda
 from utils import parse_arguments, read_settings
 from logger import Logger
 
-from models import CNNRNN
+from models import CNNRNN, VGG16GRU
 
 
 
@@ -74,11 +74,12 @@ def train(path_settings,train_settings):
     train_loader = DataLoader(train_dataset, train_settings['batch_size'], num_workers = 0, shuffle=True, collate_fn=custom_collate_fn)
     print("It is done, please check it ! ")
 
-    model = CNNRNN()
+    #model = CNNRNN()
+    model = VGG16GRU(101)
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(),lr = 0.001)
 
-    wandb_logger = Logger(f'INM705_Project_UCF101 {train_settings["batch_size"]}_lr{train_settings["num_epochs"]}', project='Action_Project')
+    wandb_logger = Logger(f'INM705_Project_UCF101_VGG16{train_settings["batch_size"]}_lr{train_settings["num_epochs"]}', project='Action_Project')
 
     logger = wandb_logger.get_logger()
 
@@ -106,7 +107,7 @@ def train(path_settings,train_settings):
     torch.save({'epochs': epoch+1,
                 'model_state_dict':model.state_dict(),
                 'optimizer_state_dict':optimizer.state_dict(),
-                'loss':loss.item()}, 'models/model_1.pth')
+                'loss':loss.item()}, 'models/model_VGG16.pth')
     
     print('Finished Training and saved the model')
 

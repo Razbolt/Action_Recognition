@@ -16,6 +16,10 @@ from torchvision import models
 
 #Faster RNN ROI and attention ??? RPN
 
+device  = torch.device('mps' if torch.backends.mps.is_available() else 'cuda')
+
+#print ('Device set to {0}'.format(device))
+
 class CNNRNN(nn.Module):
     def __init__(self):
         super(CNNRNN,self).__init__()
@@ -72,41 +76,47 @@ class CNNRNN(nn.Module):
         return output
     
 
-class VGG16GRU(nn.Module):
+class ResNetGRU(nn.Module):
 
     def __init__(self, num_classes,checkpoint_file=None):
-        super(VGG16GRU, self).__init__()
+        super(ResNetGRU, self).__init__()
         # VGG-16 Model divided into two parts: features and classifier
+        
+        #Load the pretained model
+        if checkpoint_file is not None:
+            state_dict = torch.load(checkpoint_file)
+            print('Model loaded from checkpoint,hopefully :)')
+        else:
+            state_dict = models.resnet50(pretrained=True).state_dict()
 
-        self.model  = models.vgg16(weights ='VGG16_Weights.DEFAULT')
-        self.checkpoint_file = checkpoint_file
-        self.features = self.model.features
+        #creating the new VGG16 model 
+        self.model  = models.resnet50()
+
+        #Load the weights into the model
+        self.model.load_state_dict(state_dict)
+        
+        
         self.encoder = torch.nn.Sequential(*list(self.model.children())[:-1]) # Removing the last layer 
                                                                               # Also contains all layers except the last one
-        self.classifier = self.model.classifier     # Last layer of the model as classification
+
         
         #Include bottle neck layer between encoder and gru 
-        self.bottleneck = nn.Linear(512 * 7 * 7 , 2048)
+        self.bottleneck = nn.Linear(2048 , 2048)
         self.relu = nn.ReLU()
         self.gru = nn.GRU(2048, 512, num_layers=3, batch_first=True, dropout=0.5)
 
-        self.fc0 = nn.Linear(512,101)
+        self.fc0 = nn.Linear(512,num_classes)
         
         #Print the last layer of encoder 
         #print(self.encoder[0])
         #print(self.classifier)
 
 
-
-    def load_model_from_checkpoint(self):
-        weights = torch.load(self.checkpoint_file)
-        self.model.load_state_dict(weights)
-        print('Model loaded from checkpoint,hopefully :)')
-        return self.model
-
     def forward(self, x):
         batch_size, timesteps, C, H, W = x.size()
+        x = x.float()
         x = x.reshape(batch_size * timesteps, C, H, W)
+        
         x = self.encoder(x)
         #print(f' After encoder shape is: {x.shape}')
 
@@ -134,15 +144,22 @@ class VGG16GRU(nn.Module):
 
 
         
-        return
+        
 
 
 if __name__ == '__main__':
 
-    input = torch.randn(1,5,3,230,320)
+    input = torch.rand(32,5,3,240,320).to(device)
 
-    vgg16_model = VGG16GRU(101)
-    vgg16_model.forward(input)
+    checkpoint_file = 'checkpoints/resnet50-19c8e357.pth'
+    resnetgru = ResNetGRU(10,checkpoint_file)
+            
+    resnetgru.to(device)
+    resnetgru.train()
+    output = resnetgru(input)
+
+    print('Model uploaded')
+    #vgg16_model.load_state_dict(checkpoint)
     
 
 

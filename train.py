@@ -4,6 +4,7 @@ import os
 import numpy as np
 import cv2
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from torchvision.datasets import UCF101
@@ -11,7 +12,7 @@ from torchvision.transforms import Lambda
 from utils import parse_arguments, read_settings
 from logger import Logger
 
-from models import CNNRNN, VGG16GRU
+from models import CNNRNN, ResNetGRU
 
 
 
@@ -34,29 +35,29 @@ def custom_collate_fn(batch): # This custom code is taken from https://github.co
 
 
 
+
 def train(path_settings,train_settings):
 
-    #root = "UCF-101"
-    #annotation_path = "ucfTrainTestlist"
+ 
+
 
     # Define a transform to preprocess the data
     transform = transforms.Compose([
              # scale in [0, 1]
              #transforms.Resize((240, 300)),
+        
              transforms.Lambda(lambda x: x / 255.),
+            
              # reshape into (T, C, H, W) # T number of frames in the video clip , C is Channel, H is Height, W is Width
 
-             transforms.Lambda(lambda x: x.permute(0, 3, 1, 2) ),       
+            transforms.Lambda(lambda x: x.permute(0, 3, 1, 2) ),       
     ])
+
 
     
     # Load the UCF101 dataset
     print("ALl Data  loading may take a while ")
-    train_dataset = UCF101(path_settings['root'], path_settings['annotation_path'], frames_per_clip=5, step_between_clips=5, fold=1, train=True,transform = transform )
-    #test_dataset = UCF101(root, annotation_path, frames_per_clip=5, step_between_clips=5, fold=1, train=False, transform = transform)
-
-
-
+    train_dataset = UCF101(path_settings['root'], path_settings['annotation_path'], frames_per_clip=16, step_between_clips=8, fold=1, train=True,transform = transform )
 
 
 
@@ -75,13 +76,13 @@ def train(path_settings,train_settings):
     print("It is done, please check it ! ")
 
     #model = CNNRNN()
-    model = VGG16GRU(101)
+    checkpoint_file = 'checkpoints/resnet50-19c8e357.pth'
+    model = ResNetGRU(10,checkpoint_file)
+
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(),lr = 0.001)
 
-    wandb_logger = Logger(f'INM705_Project_UCF101_VGG16{train_settings["batch_size"]}_lr{train_settings["num_epochs"]}', project='Action_Project')
-
-    logger = wandb_logger.get_logger()
+    
 
     model.to(device)
    
@@ -89,7 +90,10 @@ def train(path_settings,train_settings):
         model.train()
 
         for i, (video, label) in enumerate(train_loader):
-            video = video.to(device)    #.to(torch.float16) # Convert the video to float16 to solve the related mps issue
+            # Resize the video to (224, 224), which is the input size expected by VGG16
+            
+
+            video = video.to(device)    
             label = label.to(device)
             
             optimizer.zero_grad()
@@ -132,6 +136,9 @@ if __name__ == '__main__':
     train_settings = settings['training']
     print(path_settings['root'])
     print(train_settings['batch_size'])
+
+    wandb_logger = Logger(f'INM705_Project_UCF101 {train_settings["batch_size"]}_lr{train_settings["num_epochs"]}', project='Action_Project')
+    logger = wandb_logger.get_logger()
 
     train(path_settings, train_settings)
 

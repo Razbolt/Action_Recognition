@@ -12,7 +12,7 @@ from torchvision.transforms import Lambda
 from utils import parse_arguments, read_settings
 from logger import Logger
 
-from models import CNNRNN
+from models import CNNRNN, ResNetGRU
 
 from sklearn.metrics import confusion_matrix, classification_report
 import matplotlib.pyplot as plt
@@ -69,7 +69,7 @@ def test(path_settings,train_settings):
     #Change it whenever you want to test another model this is for our base model
     checkpoint = torch.load('models/model_1.pth',map_location=torch.device('cpu'))
 
-    
+    #The model tested in hyperion !! Check hyperion file
 
     model = CNNRNN()
     model.to(device)

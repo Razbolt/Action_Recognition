@@ -40,24 +40,26 @@ def train(path_settings,train_settings):
 
  
 
-
     # Define a transform to preprocess the data
     transform = transforms.Compose([
              # scale in [0, 1]
              #transforms.Resize((240, 300)),
         
              transforms.Lambda(lambda x: x / 255.),
+             
             
              # reshape into (T, C, H, W) # T number of frames in the video clip , C is Channel, H is Height, W is Width
 
-            transforms.Lambda(lambda x: x.permute(0, 3, 1, 2) ),       
+            transforms.Lambda(lambda x: x.permute(0, 3, 1, 2) ),
+            transforms.Resize((240, 240)),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),      
     ])
 
 
     
     # Load the UCF101 dataset
     print("ALl Data  loading may take a while ")
-    train_dataset = UCF101(path_settings['root'], path_settings['annotation_path'], frames_per_clip=16, step_between_clips=8, fold=1, train=True,transform = transform )
+    train_dataset = UCF101(path_settings['root'], path_settings['annotation_path'], path_settings['frames_per_clip'], path_settings['step_between_clips'], fold=1, train=True,transform = transform )
 
 
 
@@ -80,7 +82,7 @@ def train(path_settings,train_settings):
     model = ResNetGRU(10,checkpoint_file)
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(),lr = 0.001)
+    optimizer = torch.optim.Adam(model.parameters(),lr = 0.01) # Learning rate is changed to 0.01
 
     
 
@@ -111,7 +113,7 @@ def train(path_settings,train_settings):
     torch.save({'epochs': epoch+1,
                 'model_state_dict':model.state_dict(),
                 'optimizer_state_dict':optimizer.state_dict(),
-                'loss':loss.item()}, 'models/model_VGG16.pth')
+                'loss':loss.item()}, 'models/model_VGG16_2.pth')
     
     print('Finished Training and saved the model')
 
@@ -137,7 +139,7 @@ if __name__ == '__main__':
     print(path_settings['root'])
     print(train_settings['batch_size'])
 
-    wandb_logger = Logger(f'INM705_Project_UCF101 {train_settings["batch_size"]}_lr{train_settings["num_epochs"]}', project='Action_Project')
+    wandb_logger = Logger(f'Project_UCF101_ResnetGRU2_b{train_settings["batch_size"]}_e{train_settings["num_epochs"]}', project='Action_Project')
     logger = wandb_logger.get_logger()
 
     train(path_settings, train_settings)

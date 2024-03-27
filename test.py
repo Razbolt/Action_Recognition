@@ -56,7 +56,7 @@ transform = transforms.Compose([
 def test(path_settings,train_settings):
    
     
-    test_dataset = UCF101(path_settings['root'], path_settings['annotation_path'], frames_per_clip=5, step_between_clips=5, fold=1, train=False, transform = transform)
+    test_dataset = UCF101(path_settings['root'], path_settings['annotation_path'], path_settings['frames_per_clip'], path_settings['step_between_clips'], fold=1, train=False, transform = transform)
     test_loader = DataLoader(test_dataset, train_settings['batch_size'],num_workers=0, shuffle=True,collate_fn=custom_collate_fn)
 
 

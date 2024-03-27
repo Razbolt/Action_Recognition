@@ -87,7 +87,7 @@ class ResNetGRU(nn.Module):
             state_dict = torch.load(checkpoint_file)
             print('Model loaded from checkpoint,hopefully :)')
         else:
-            state_dict = models.resnet50(pretrained=True).state_dict()
+            state_dict = models.resnet50(pretrained=False).state_dict()
 
         #creating the new VGG16 model 
         self.model  = models.resnet50()
@@ -102,9 +102,11 @@ class ResNetGRU(nn.Module):
         
         #Include bottle neck layer between encoder and gru 
         self.bottleneck = nn.Linear(2048 , 2048)
+        self.bn = nn.BatchNorm1d(2048) # Batch normalization 
         self.relu = nn.ReLU()
         self.gru = nn.GRU(2048, 512, num_layers=3, batch_first=True, dropout=0.5)
 
+        self.bn2 = nn.BatchNorm1d(512)
         self.fc0 = nn.Linear(512,num_classes)
         
         #Print the last layer of encoder 
@@ -122,6 +124,7 @@ class ResNetGRU(nn.Module):
 
         x = x.view(x.size(0), -1) # Flatten the output look it tomorrow detailed
         x= self.bottleneck(x)
+        x= self.bn(x)             # First batch normalization applied
         #print(f' After bottleneck shape is: {x.shape}')
         x = self.relu(x)
         #print(f' After ReLU shape is: {x.shape}')
@@ -132,6 +135,7 @@ class ResNetGRU(nn.Module):
 
         #Take the output from the last time step        # CHECK IT TOO!!!
         gru_out = gru_out[:, -1, :]
+        gru_out = self.bn2(gru_out) # Second batch normalization applied before fully connected layer
 
         x = self.fc0(gru_out)
 

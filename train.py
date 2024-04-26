@@ -11,8 +11,9 @@ from torchvision.datasets import UCF101
 from torchvision.transforms import Lambda
 from utils import parse_arguments, read_settings
 from logger import Logger
-
 from models import CNNRNN, ResNetGRU
+
+from C3_model import C3DNetwork
 
 
 
@@ -73,13 +74,20 @@ def train(path_settings,train_settings):
     
 
     # Create a DataLoader
-    print("ALL Data is batching now, may take a while ")
+    #print("ALL Data is batching now, may take a while ")
     train_loader = DataLoader(train_dataset, train_settings['batch_size'], num_workers = 0, shuffle=True, collate_fn=custom_collate_fn)
-    print("It is done, please check it ! ")
+    #print("It is done, please check it ! ")
 
     #model = CNNRNN()
-    checkpoint_file = 'checkpoints/resnet50-19c8e357.pth'
-    model = ResNetGRU(10,checkpoint_file)
+    #checkpoint_file = 'checkpoints/resnet50-19c8e357.pth'
+    #model = ResNetGRU(10,checkpoint_file)
+
+    checkpoint_file = 'checkpoints/fasterrcnn_resnet50_fpn_coco-258fb6c6.pth'
+    #model = FasterRCNNGRU(10,checkpoint_file)
+
+    model = C3DNetwork(10,path_settings['frames_per_clip'])
+
+
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(),lr = 0.01) # Learning rate is changed to 0.01
@@ -90,6 +98,7 @@ def train(path_settings,train_settings):
    
     for epoch in range(train_settings['num_epochs']):
         model.train()
+        #model.base_model.eval()
 
         for i, (video, label) in enumerate(train_loader):
             # Resize the video to (224, 224), which is the input size expected by VGG16
@@ -113,7 +122,7 @@ def train(path_settings,train_settings):
     torch.save({'epochs': epoch+1,
                 'model_state_dict':model.state_dict(),
                 'optimizer_state_dict':optimizer.state_dict(),
-                'loss':loss.item()}, 'models/model_VGG16_2.pth')
+                'loss':loss.item()}, 'models/model_3DCN.pth')
     
     print('Finished Training and saved the model')
 
@@ -134,7 +143,7 @@ if __name__ == '__main__':
     print(path_settings['root'])
     print(train_settings['batch_size'])
 
-    wandb_logger = Logger(f'Project_UCF101_ResnetGRU2_b{train_settings["batch_size"]}_e{train_settings["num_epochs"]}', project='Action_Project')
+    wandb_logger = Logger(f'Project_UCF101_3DCONV_b{train_settings["batch_size"]}_e{train_settings["num_epochs"]}', project='Action_Project')
     logger = wandb_logger.get_logger()
 
     train(path_settings, train_settings)

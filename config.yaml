@@ -1,8 +1,8 @@
 paths:
   root: "UCF-101"
   annotation_path: "ucfTrainTestlist"
-  frames_per_clip: 5
-  step_between_clips: 5
+  frames_per_clip: 8
+  step_between_clips: 2
   fold : 1
   train_dataset:
     train: True
@@ -14,8 +14,8 @@ paths:
 
 
 training:
-  batch_size: 64
-  num_epochs: 5
+  batch_size: 4
+  num_epochs: 10
 
 
   

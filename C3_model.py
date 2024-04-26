@@ -7,6 +7,7 @@ from torchvision.datasets import UCF101
 device  = torch.device('cpu' if torch.backends.mps.is_available() else 'cuda')
 print('Device:',device)
 
+#3C Convolutional Neural Network 
 
 class C3DNetwork(nn.Module):
     def __init__(self, num_classes,in_channels, dropout_prob=0.5):

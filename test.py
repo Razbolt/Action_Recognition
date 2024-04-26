@@ -11,14 +11,18 @@ from torchvision.datasets import UCF101
 from torchvision.transforms import Lambda
 from utils import parse_arguments, read_settings
 from logger import Logger
+import json
 
-from models import CNNRNN, ResNetGRU
+
+from models import CNNRNN,ResNetGRU
+from C3_model import C3DNetwork
 
 from sklearn.metrics import confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np 
 
+import wandb
 
 #os.environ['https_proxy'] = "http://hpc-proxy00.city.ac.uk:3128"
 
@@ -49,7 +53,8 @@ transform = transforms.Compose([
     # reshape into (T, C, H, W) # T number of frames in the video clip , C is Channel, H is Height, W is Width
     transforms.Lambda(lambda x: x.permute(0, 3, 1, 2) ),
 
-    transforms.Resize((240, 320))
+    transforms.Resize((240, 240)),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 
     ])
 
@@ -67,11 +72,11 @@ def test(path_settings,train_settings):
     #print(f'Label: {label}')
 
     #Change it whenever you want to test another model this is for our base model
-    checkpoint = torch.load('models/model_1.pth',map_location=torch.device('cpu'))
+    checkpoint = torch.load('models/model_3DCN.pth',map_location = torch.device('cpu') )
 
-    #The model tested in hyperion !! Check hyperion file
-
-    model = CNNRNN()
+    model = C3DNetwork(101,16)
+    #model = ResNetGRU(101)
+    #model = CNNRNN()
     model.to(device)
 
     #
@@ -110,24 +115,41 @@ def test(path_settings,train_settings):
             print(f'Failed to test the model {failed_tests} times')
             print(f'Error: {e}')
             pass
+
+
+    accuracy = 100 * correct / total
+    print(f'Accuracy of the network on the test: {accuracy} %')
+    logger.log({"Accuracy": accuracy})
+
+    
     
     #Calculating the confusion matrix and classification report
     cm = confusion_matrix(y_true,y_pred)
-    report = classification_report(y_true,y_pred,zero_division=1)
+    report = classification_report(y_true,y_pred,zero_division=1,output_dict = True)
 
-    with open('test_results/classification_report.txt','w') as f:
-        f.write(report)
+    # Read class names from classInd.txt
+    with open('ucfTrainTestlist/classInd.txt', 'r') as f:
+        class_names = [line.strip().split(' ')[1] for line in f]
+
+    with open('test_results/classification_report_3DCONV_2.txt','w') as f:
+        f.write(json.dumps(report))
     
     #Plot the confusion matrix
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(25,25))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
     plt.title('Confusion Matrix',size = 15)
-    plt.savefig('test_results/confusion_matrix.png')
+    plt.savefig('test_results/confusion_matrix_3DCONV_2.png')
 
-    accuracy = 100 * correct / total
-    print(f'Accuracy of the network on the test: {accuracy} %')
+
+
+    print('Gonna try to write into wandb')
+    logger.log({"classification_report": json.dumps(report), "confusion_matrix": wandb.plot.confusion_matrix(probs=None, y_true=y_true, preds=y_pred, class_names=class_names)})
+
+
+
+
 
 
 
@@ -144,6 +166,9 @@ if __name__ == '__main__':
 
     print(path_settings['root'])
     print(train_settings)
+
+    wandb_logger = Logger(f'Test_UCF101_3DCONV_2_b{train_settings["batch_size"]}_e{train_settings["num_epochs"]}', project='Action_Project')
+    logger = wandb_logger.get_logger()
 
     test(path_settings,train_settings)
         

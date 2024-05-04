@@ -75,3 +75,10 @@ python test.py
  At the end you can see the results in test/result folder with classification report, confusion matrix with accuracy score. Also its include everything in logger as alternative.
 
 
+## INFERENCE NOTEBOOK
+
+If you want to test the results of the video by small sample. Please check the ```INM705_INFERENCE.ipynb``` file. It has same instructions and easier to follow. It will help you to understand what is happening inside models. 
+
+
+If you have anything to learn more please send an email to: erdem-baha.arslan@city.ac.uk 
+

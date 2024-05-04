@@ -31,8 +31,6 @@ device  = torch.device('mps' if torch.backends.mps.is_available() else 'cuda')
 print ('Device set to {0}'.format(device))
 
 
-
-
 def custom_collate_fn(batch): # This custom code is taken from https://github.com/pytorch/vision/issues/2265
     filtered_batch = []       # The purpose of this code is to filter out the audio data from the batch
     for video, _, label in batch:
@@ -45,20 +43,29 @@ def custom_collate_fn(batch): # This custom code is taken from https://github.co
 # Define a transform to preprocess the data
 transform = transforms.Compose([
     
-    
-    # scale in [0, 1]
-    transforms.Lambda(lambda x: x / 255.),
-    
-
-    # reshape into (T, C, H, W) # T number of frames in the video clip , C is Channel, H is Height, W is Width
-    transforms.Lambda(lambda x: x.permute(0, 3, 1, 2) ),
-
+   
+    transforms.Lambda(lambda x: x / 255.),  # scale in [0, 1]
+    transforms.Lambda(lambda x: x.permute(0, 3, 1, 2) ),  # reshape into (T, C, H, W) # T number of frames in the video clip , C is Channel, H is Height, W is Width
     transforms.Resize((240, 240)),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 
     ])
 
 def test(path_settings,train_settings):
+    '''
+    Testing function that takes the path settings and training settings as input from the YAML file
+    and tests a model on the UCF101 dataset
+
+    Args:
+    path_settings (dict): Dictionary containing the path settings
+    train_settings (dict): Dictionary containing the training settings
+
+    Returns:
+    The accuracy of the model on the test set is printed and saved in the wandb logger
+
+    
+    
+    '''
    
     
     test_dataset = UCF101(path_settings['root'], path_settings['annotation_path'], path_settings['frames_per_clip'], path_settings['step_between_clips'], fold=1, train=False, transform = transform)
@@ -71,15 +78,13 @@ def test(path_settings,train_settings):
     print(f' Original Videos shape {video.shape}')    # (T, C, H, W)
     #print(f'Label: {label}')
 
-    #Change it whenever you want to test another model this is for our base model
-    checkpoint = torch.load('models/model_3DCN.pth',map_location = torch.device('cpu') )
+   
+    checkpoint = torch.load('models/model_3DCN.pth',map_location = torch.device('cpu') )  #Change it whenever you want to test another model this is for our base model
 
     model = C3DNetwork(101,16)
     #model = ResNetGRU(101)
     #model = CNNRNN()
     model.to(device)
-
-    #
     model.load_state_dict(checkpoint['model_state_dict'])
 
     

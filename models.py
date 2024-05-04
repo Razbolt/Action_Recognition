@@ -4,24 +4,13 @@ from torch import nn
 from torchvision import models
 
 
-#Include Relu from torch.nn.functional
-
-
-# Create a first simple CNN and RNN model to train on the UCF101 dataset
-# TODO:
-# Also I can resize the pixels to 128x128 or 64x64
-# Backbone from other models' parameters can be frozen and used as a feature extractor
-# Transformers for decode parth 
-# 3D convolutional neural network 
-
-#Faster RNN ROI and attention ??? RPN
 
 device  = torch.device('mps' if torch.backends.mps.is_available() else 'cuda')
 
 #print ('Device set to {0}'.format(device))
 
-class CNNRNN(nn.Module):
-    def __init__(self):
+class CNNRNN(nn.Module):  #Base Model for the project Vanilla CNNRNN model with 2 CNN layers and 3 LSTM layers
+    def __init__(self):   #Constructor of the class only the layers are defined here in order to use for original data please change the last layer of self.fc2 to 101
         super(CNNRNN,self).__init__()
 
 
@@ -38,9 +27,9 @@ class CNNRNN(nn.Module):
         self.lstm = nn.LSTM(input_size = 64, hidden_size = 128, num_layers = 3, batch_first = True)
         self.dropout = nn.Dropout(0.3)
 
-        #For simplicity I only have 10 classes
+
         self.fc1 = nn.Linear(128, 128)
-        self.fc2 = nn.Linear(128, 101)
+        self.fc2 = nn.Linear(128, 101) #You can change the last layer to 101 for the original data
 
 
     def forward(self,x):
@@ -48,29 +37,22 @@ class CNNRNN(nn.Module):
         x = x.reshape(batch_size * timespets,C,H,W) # Convert 5D tensor to 4D tensor
         #print(f' Before CNN {x.shape}')
     
-
         #Pass data through CNN
         c_out = self.cnn(x)
         #print(f' After CNN {c_out.shape}')
 
         #Reshape the output to (batch_size, timespets, features) -1 mens channels * height * width
-        
         r_in = c_out.reshape(batch_size,timespets,-1)  # Convert 4D tensor to 3D tensor
         #print(f' Getting read to pass data through LSTM {r_in.shape}')
-
         r_in = self.fc0(r_in)
         #print(f' Before really getting to LSTM  {r_in.shape}')
+
         #Pass data through LSTM
         r_out, (h_n, c_n) = self.lstm(r_in) # 3D tensor of output (batch_size, timespets, features)
+        r_out = r_out[:, -1 , :]  #Use the output from the last time step
+        r_out = self.dropout(r_out) #Apply dropout 
 
-        #Use the output from the last time step
-        r_out = r_out[:, -1 , :]
-
-        #Apply dropout 
-        r_out = self.dropout(r_out)
-
-        #Pass data through fully connected layers
-        x = self.fc1(r_out)
+        x = self.fc1(r_out) #Pass data through fully connected layers
         output= self.fc2(x)
 
         return output
@@ -78,30 +60,28 @@ class CNNRNN(nn.Module):
 
 class ResNetGRU(nn.Module):
 
-    def __init__(self, num_classes,checkpoint_file=None):
-        super(ResNetGRU, self).__init__()
-        # VGG-16 Model divided into two parts: features and classifier
+    def __init__(self, num_classes,checkpoint_file=None): #Constructor of the class , num_classes is the number of classes in the dataset
+        super(ResNetGRU, self).__init__() #Call the constructor of the parent class
         
-        #Load the pretained model
-        if checkpoint_file is not None:
+        
+       
+        if checkpoint_file is not None:  #Load the pretained model if the checkpoint file is provided
             state_dict = torch.load(checkpoint_file)
             print('Model loaded from checkpoint,hopefully :)')
         else:
-            state_dict = models.resnet50(pretrained=False).state_dict()
+            state_dict = models.resnet50(pretrained=False).state_dict() #Change it to True whenever you are training for the first time
 
-        #creating the new VGG16 model 
-        self.model  = models.resnet50()
-
-        #Load the weights into the model
-        self.model.load_state_dict(state_dict)
+      
+        self.model  = models.resnet50()   #Load the resnet50 model
+        self.model.load_state_dict(state_dict) #Load the weights into the model
         
         
         self.encoder = torch.nn.Sequential(*list(self.model.children())[:-1]) # Removing the last layer 
                                                                               # Also contains all layers except the last one
 
         
-        #Include bottle neck layer between encoder and gru 
-        self.bottleneck = nn.Linear(2048 , 2048)
+         
+        self.bottleneck = nn.Linear(2048 , 2048) #Include bottle neck layer between encoder and gru
         self.bn = nn.BatchNorm1d(2048) # Batch normalization 
         self.relu = nn.ReLU()
         self.gru = nn.GRU(2048, 512, num_layers=3, batch_first=True, dropout=0.5)
@@ -151,7 +131,7 @@ class ResNetGRU(nn.Module):
         
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': #Testing the models
 
     input = torch.rand(32,5,3,240,320).to(device)
 
@@ -163,7 +143,7 @@ if __name__ == '__main__':
     output = resnetgru(input)
 
     print('Model uploaded')
-    #vgg16_model.load_state_dict(checkpoint)
+    
     
 
 

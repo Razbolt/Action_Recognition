@@ -7,10 +7,11 @@ from torchvision.datasets import UCF101
 device  = torch.device('cpu' if torch.backends.mps.is_available() else 'cuda')
 print('Device:',device)
 
-#3C Convolutional Neural Network 
+#Above class is builded based on the paper https://arxiv.org/abs/1412.0767
 
-class C3DNetwork(nn.Module):
-    def __init__(self, num_classes,in_channels, dropout_prob=0.5):
+class C3DNetwork(nn.Module): #3C Convolutional Neural Network for video classification
+    def __init__(self, num_classes,in_channels, dropout_prob=0.5): #Constructor of the class , num_classes is the number of classes in the dataset
+                                                                   # in_channels is the number of channels in the input data
         super(C3DNetwork, self).__init__()
         self.conv1 = nn.Conv3d(in_channels, 64, kernel_size=3, padding=1)
         self.pool1 = nn.MaxPool3d(kernel_size=2, stride=2,padding= 1)
@@ -62,21 +63,19 @@ class C3DNetwork(nn.Module):
         # Apply weight initialization for better convergence 
         self._initialize_weights()
 
-    def _initialize_weights(self):
+    def _initialize_weights(self): # Function to initialize the weights of the model
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
 
-    def forward(self, x):
-        # Pass through 3D convolutional layers
-        x = self.pool1(nn.functional.relu(self.bn1(self.conv1(x))))
+    def forward(self, x):  #There are lots of print statements to check the shape of the data at different stages
 
+        x = self.pool1(nn.functional.relu(self.bn1(self.conv1(x))))         # Pass through 3D convolutional layers
         x = self.dropout1(x)  
         #print(f' After pool1 {x.shape}')
 
-        
         x = self.pool2(nn.functional.relu(self.bn2(self.conv2(x))))
         x = self.dropout1(x)  
         #print(f' After pool2 {x.shape}')
@@ -105,7 +104,6 @@ class C3DNetwork(nn.Module):
         x = self.dropout1(x)  
         #print(f' After conv5b {x.shape}')
         
-
         x = self.gap(x)
         #print(f' After GAP {x.shape}')
 

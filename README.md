@@ -29,6 +29,8 @@ Unfortunately, due to limitation of git, these folder are ignored in .gitignore 
 - Original dataset from this url: https://www.crcv.ucf.edu/data/UCF101.php
 - For Resnet50 please download from the link and add into /checkpoints file: https://download.pytorch.org/models/resnet50-0676ba61.pth
 
+To activate virtual environment:
+
 ```bash
 python3 -m venv env
 ```
